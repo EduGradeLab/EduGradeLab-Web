@@ -70,6 +70,11 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   }, ref) => {
     const isDisabled = disabled || loading;
 
+    // asChild desteği için log
+    if (asChild) {
+      console.log('asChild prop is not implemented yet');
+    }
+
     return (
       <button
         className={cn(buttonVariants({ variant, size, className }))}

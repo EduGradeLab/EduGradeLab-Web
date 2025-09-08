@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { executeUpdate, executeQuery } from '@/lib/database';
-import { ApiResponse, ScannerOutput, Analysis } from '@/types';
+import { ApiResponse } from '@/types';
 
 /**
  * Scanner'dan gelen sonuçları işle

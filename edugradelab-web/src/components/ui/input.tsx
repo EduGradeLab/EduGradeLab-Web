@@ -4,7 +4,7 @@
  * Form validation desteği ile mobil-first tasarım
  */
 
-import React from 'react';
+import React, { useId } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface InputProps
@@ -31,7 +31,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     disabled,
     ...props 
   }, ref) => {
-    const inputId = id || `input-${Math.random().toString(36).substring(2, 15)}`;
+    const generatedId = useId();
+    const inputId = id || generatedId;
     const hasError = !!error;
 
     return (

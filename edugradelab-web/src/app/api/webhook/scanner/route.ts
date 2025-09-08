@@ -11,78 +11,49 @@ export async function POST(request: NextRequest) {
   try {
     // Webhook payload'ını parse et
     const payload: ScannerWebhookPayload = await request.json();
-    const { fileId, status, scannedText, confidence, error } = payload;
+    const { uploadId, status, scannedImageUrl, meta, error } = payload;
 
     // Basic validation
-    if (!fileId || !status) {
+    if (!uploadId || !status) {
       return NextResponse.json<ApiResponse>({
         success: false,
-        message: 'fileId ve status gereklidir',
+        message: 'uploadId ve status gereklidir',
       }, { status: 400 });
     }
 
     if (status === 'success') {
       // Başarılı tarama
       await executeUpdate(
-        'UPDATE files SET status = ? WHERE id = ?',
-        [FileStatus.SCANNED, fileId]
+        'UPDATE uploads SET status = ? WHERE id = ?',
+        [FileStatus.SCANNED, uploadId]
       );
 
-      // AI analizi için webhook'u tetikle
-      try {
-        const aiWebhookUrl = process.env.AI_ANALYSIS_WEBHOOK_URL;
-        
-        if (aiWebhookUrl) {
-          await fetch(aiWebhookUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              fileId,
-              scannedText,
-              confidence,
-            }),
-          });
-
-          // Dosya durumunu güncelle
-          await executeUpdate(
-            'UPDATE files SET status = ? WHERE id = ?',
-            [FileStatus.ANALYZING, fileId]
-          );
-
-          // Analysis results tablosunu güncelle
-          await executeUpdate(
-            'UPDATE analysis_results SET status = ? WHERE file_id = ?',
-            ['in_progress', fileId]
-          );
-        }
-      } catch (aiError) {
-        console.error('AI webhook error:', aiError);
-        
-        // AI webhook hatası durumunda
+      // Meta bilgileri varsa güncelle
+      if (meta) {
         await executeUpdate(
-          'UPDATE files SET status = ? WHERE id = ?',
-          [FileStatus.ERROR, fileId]
-        );
-
-        await executeUpdate(
-          'UPDATE analysis_results SET status = ?, feedback = ? WHERE file_id = ?',
-          ['error', 'AI analizi başlatılamadı', fileId]
+          'UPDATE uploads SET metadata = ? WHERE id = ?',
+          [JSON.stringify(meta), uploadId]
         );
       }
+
+      // Scanned image URL'i varsa güncelle
+      if (scannedImageUrl) {
+        await executeUpdate(
+          'UPDATE uploads SET processed_url = ? WHERE id = ?',
+          [scannedImageUrl, uploadId]
+        );
+      }
+
+      console.log(`✅ Tarama tamamlandı - Upload ID: ${uploadId}`);
 
     } else {
       // Tarama hatası
       await executeUpdate(
-        'UPDATE files SET status = ? WHERE id = ?',
-        [FileStatus.ERROR, fileId]
+        'UPDATE uploads SET status = ? WHERE id = ?',
+        [FileStatus.ERROR, uploadId]
       );
 
-      await executeUpdate(
-        'UPDATE analysis_results SET status = ?, feedback = ? WHERE file_id = ?',
-        ['error', error || 'Dosya tarama hatası', fileId]
-      );
+      console.error(`❌ Tarama hatası - Upload ID: ${uploadId}, Error: ${error}`);
     }
 
     // Log işlemi
@@ -92,10 +63,10 @@ export async function POST(request: NextRequest) {
         [
           'scanner_webhook',
           JSON.stringify({
-            fileId,
+            uploadId,
             status,
-            scannedText: scannedText ? 'received' : null,
-            confidence,
+            hasScannedImage: !!scannedImageUrl,
+            hasMeta: !!meta,
             error,
           })
         ]
@@ -107,6 +78,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json<ApiResponse>({
       success: true,
       message: 'Scanner webhook işlendi',
+      data: {
+        uploadId,
+        status,
+      },
     });
 
   } catch (error) {

@@ -12,67 +12,64 @@ export async function POST(request: NextRequest) {
     // Webhook payload'ını parse et
     const payload: AIAnalysisWebhookPayload = await request.json();
     const { 
-      fileId, 
+      uploadId, 
       analysisId, 
       status, 
-      score, 
-      feedback, 
-      visualAnalysis, 
-      pdfUrl, 
+      analysisData, 
       error 
     } = payload;
 
     // Basic validation
-    if (!fileId || !status) {
+    if (!uploadId || !status) {
       return NextResponse.json<ApiResponse>({
         success: false,
-        message: 'fileId ve status gereklidir',
+        message: 'uploadId ve status gereklidir',
       }, { status: 400 });
     }
 
-    if (status === 'success') {
+    if (status === 'success' && analysisData) {
       // Başarılı analiz
       await executeUpdate(
-        'UPDATE files SET status = ? WHERE id = ?',
-        [FileStatus.COMPLETED, fileId]
+        'UPDATE uploads SET status = ? WHERE id = ?',
+        [FileStatus.COMPLETED, uploadId]
       );
 
-      // Analysis results'ı güncelle
+      // Analysis tablosuna kaydet
       await executeUpdate(
-        `UPDATE analysis_results SET 
-         status = ?, score = ?, feedback = ?, visual_analysis = ?, pdf_url = ?, updated_at = CURRENT_TIMESTAMP
-         WHERE file_id = ?`,
+        `INSERT INTO analysis (upload_id, user_id, analysis_data, created_at) 
+         VALUES (?, (SELECT user_id FROM uploads WHERE id = ?), ?, CURRENT_TIMESTAMP)
+         ON DUPLICATE KEY UPDATE 
+         analysis_data = VALUES(analysis_data), updated_at = CURRENT_TIMESTAMP`,
         [
-          AnalysisStatus.COMPLETED,
-          score || null,
-          feedback || null,
-          visualAnalysis ? JSON.stringify(visualAnalysis) : null,
-          pdfUrl || null,
-          fileId
+          uploadId,
+          uploadId,
+          JSON.stringify(analysisData)
         ]
       );
 
-      console.log(`✅ Analiz tamamlandı - File ID: ${fileId}, Score: ${score}`);
+      console.log(`✅ Analiz tamamlandı - Upload ID: ${uploadId}`);
 
     } else {
       // Analiz hatası
       await executeUpdate(
-        'UPDATE files SET status = ? WHERE id = ?',
-        [FileStatus.ERROR, fileId]
+        'UPDATE uploads SET status = ? WHERE id = ?',
+        [FileStatus.ERROR, uploadId]
       );
 
+      // Hata kaydı
       await executeUpdate(
-        `UPDATE analysis_results SET 
-         status = ?, feedback = ?, updated_at = CURRENT_TIMESTAMP
-         WHERE file_id = ?`,
+        `INSERT INTO analysis (upload_id, user_id, error_message, created_at) 
+         VALUES (?, (SELECT user_id FROM uploads WHERE id = ?), ?, CURRENT_TIMESTAMP)
+         ON DUPLICATE KEY UPDATE 
+         error_message = VALUES(error_message), updated_at = CURRENT_TIMESTAMP`,
         [
-          AnalysisStatus.ERROR,
-          error || 'AI analiz hatası',
-          fileId
+          uploadId,
+          uploadId,
+          error || 'AI analiz hatası'
         ]
       );
 
-      console.error(`❌ Analiz hatası - File ID: ${fileId}, Error: ${error}`);
+      console.error(`❌ Analiz hatası - Upload ID: ${uploadId}, Error: ${error}`);
     }
 
     // Log işlemi
@@ -82,13 +79,10 @@ export async function POST(request: NextRequest) {
         [
           'ai_analysis_webhook',
           JSON.stringify({
-            fileId,
+            uploadId,
             analysisId,
             status,
-            score,
-            hasFeedback: !!feedback,
-            hasVisualAnalysis: !!visualAnalysis,
-            hasPdfUrl: !!pdfUrl,
+            hasAnalysisData: !!analysisData,
             error,
           })
         ]
@@ -101,9 +95,9 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'AI analysis webhook işlendi',
       data: {
-        fileId,
+        uploadId,
         status,
-        score: status === 'success' ? score : undefined,
+        hasAnalysisData: status === 'success' && !!analysisData,
       },
     });
 

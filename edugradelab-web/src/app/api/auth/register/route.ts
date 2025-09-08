@@ -4,8 +4,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { executeQuery, executeUpdate } from '@/lib/database';
-import { hashPassword, createToken, validateEmail, validatePassword, RateLimiter } from '@/lib/auth';
+import { executeUpdate, executeQuery } from '@/lib/database';
+import { hashPassword, createToken } from '@/lib/auth';
+import { validateEmail, validatePasswordStrong, RateLimiter } from '@/lib/auth-client';
 import { User, RegisterFormData, ApiResponse, LoginResponse, UserRole } from '@/types';
 
 // Rate limiting
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Şifre güvenlik kontrolü
-    const passwordValidation = validatePassword(password);
+    const passwordValidation = validatePasswordStrong(password);
     if (!passwordValidation.isValid) {
       return NextResponse.json<ApiResponse>({
         success: false,

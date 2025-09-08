@@ -38,6 +38,7 @@ export interface Upload {
   content_type: string;
   upload_path: string;
   file_url: string;
+  status: string; // Dosya durumu
   uploaded_at: Date;
 }
 
@@ -151,7 +152,7 @@ export interface ScannerWebhookPayload {
   uploadId: number;
   status: 'success' | 'error';
   scannedImageUrl?: string;
-  meta?: any;
+  meta?: Record<string, unknown>;
   error?: string;
 }
 
@@ -159,10 +160,32 @@ export interface AIAnalysisWebhookPayload {
   uploadId: number;
   analysisId: number;
   status: 'success' | 'error';
-  aiText?: string;
-  aiScore?: number;
-  aiFeedback?: string;
-  resultImageUrl?: string;
-  pdfUrl?: string;
+  analysisData?: ExamAnalysisResult;
   error?: string;
+}
+
+/**
+ * Sınav kağıdı analiz sonuçları
+ */
+export interface ExamAnalysisResult {
+  ogrenci: {
+    ad: string;
+    soyad: string;
+    numara: string;
+    sinif: string;
+  };
+  sinav: {
+    baslik: string;
+    sorular: ExamQuestion[];
+  };
+}
+
+export interface ExamQuestion {
+  soru_numarasi: number;
+  soru_tipi: 'multiple_choice' | 'open_ended' | 'fill_in_blank';
+  soru_metni: string;
+  siklar?: Record<string, string>;
+  isaretli_cevap?: string;
+  ogrenci_cevabi?: string;
+  puan?: number | null;
 }

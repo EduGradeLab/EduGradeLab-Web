@@ -145,6 +145,7 @@ export function createSecureDownloadUrl(
 ): string {
   // Bu fonksiyon ileride JWT token ile imzalanmış download URL'leri için kullanılabilir
   // Şu an için direct blob URL dönüyor
+  console.log(`Creating secure download URL with ${expiresInMinutes} minutes expiry`);
   return blobUrl;
 }
 

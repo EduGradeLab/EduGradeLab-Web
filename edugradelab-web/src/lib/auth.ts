@@ -1,17 +1,23 @@
 /**
- * JWT token ve authentication yardımcı fonksiyonları
- * Güvenli kimlik doğrulama için
+ * Server-side JWT token ve authentication yardımcı fonksiyonları
+ * Sadece API routes'larda kullanılmalı
  */
 
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { JWTPayload, User, UserRole } from '@/types';
+import { JWTPayload, UserRole } from '@/types';
 
-const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = '7d';
 
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is required');
+/**
+ * JWT Secret'i güvenli şekilde al
+ */
+function getJWTSecret(): string {
+  const JWT_SECRET = process.env.JWT_SECRET;
+  if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is required');
+  }
+  return JWT_SECRET;
 }
 
 /**
@@ -33,24 +39,27 @@ export async function verifyPassword(
 }
 
 /**
- * JWT token oluşturur
+ * JWT token oluşturur (Server-side only)
  */
 export function createToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, JWT_SECRET!, {
+  const JWT_SECRET = getJWTSecret();
+  return jwt.sign(payload, JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN,
-    algorithm: 'HS256',
+    issuer: 'edugradelab',
+    audience: 'edugradelab-users'
   });
 }
 
 /**
- * JWT token'ı doğrular ve decode eder
+ * JWT token doğrular (Server-side only)
  */
-export function verifyToken(token: string): JWTPayload | null {
+export function verifyToken(token: string): JWTPayload {
+  const JWT_SECRET = getJWTSecret();
   try {
-    return jwt.verify(token, JWT_SECRET!) as JWTPayload;
+    return jwt.verify(token, JWT_SECRET) as JWTPayload;
   } catch (error) {
-    console.error('JWT verification error:', error);
-    return null;
+    console.error('JWT verification failed:', error);
+    throw new Error('Invalid or expired token');
   }
 }
 
@@ -108,76 +117,4 @@ export function isOwnerOrAdmin(
   resourceUserId: number
 ): boolean {
   return userRole === UserRole.ADMIN || userId === resourceUserId;
-}
-
-/**
- * Email formatını doğrular
- */
-export function validateEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-}
-
-/**
- * Şifre güvenlik kriterlerini kontrol eder
- */
-export function validatePassword(password: string): {
-  isValid: boolean;
-  errors: string[];
-} {
-  const errors: string[] = [];
-  
-  if (password.length < 8) {
-    errors.push('Şifre en az 8 karakter olmalıdır');
-  }
-  
-  if (!/[A-Z]/.test(password)) {
-    errors.push('Şifre en az bir büyük harf içermelidir');
-  }
-  
-  if (!/[a-z]/.test(password)) {
-    errors.push('Şifre en az bir küçük harf içermelidir');
-  }
-  
-  if (!/[0-9]/.test(password)) {
-    errors.push('Şifre en az bir rakam içermelidir');
-  }
-  
-  return {
-    isValid: errors.length === 0,
-    errors,
-  };
-}
-
-/**
- * Rate limiting için basit token bucket implementasyonu
- */
-export class RateLimiter {
-  private attempts: Map<string, { count: number; resetTime: number }> = new Map();
-  
-  constructor(
-    private maxAttempts: number = 5,
-    private windowMs: number = 15 * 60 * 1000 // 15 dakika
-  ) {}
-  
-  isAllowed(identifier: string): boolean {
-    const now = Date.now();
-    const attempt = this.attempts.get(identifier);
-    
-    if (!attempt || now > attempt.resetTime) {
-      this.attempts.set(identifier, { count: 1, resetTime: now + this.windowMs });
-      return true;
-    }
-    
-    if (attempt.count >= this.maxAttempts) {
-      return false;
-    }
-    
-    attempt.count++;
-    return true;
-  }
-  
-  reset(identifier: string): void {
-    this.attempts.delete(identifier);
-  }
 }

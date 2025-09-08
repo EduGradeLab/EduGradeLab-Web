@@ -5,8 +5,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { executeQuery } from '@/lib/database';
-import { verifyPassword, createToken, validateEmail, RateLimiter } from '@/lib/auth';
-import { User, LoginFormData, ApiResponse, LoginResponse } from '@/types';
+import { verifyPassword, createToken } from '@/lib/auth';
+import { validateEmail, RateLimiter } from '@/lib/auth-client';
+import { User, UserRole, LoginFormData, ApiResponse, LoginResponse } from '@/types';
 
 // Rate limiting
 const loginLimiter = new RateLimiter(5, 15 * 60 * 1000); // 5 attempts per 15 minutes
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     // Kullanıcıyı veritabanından bul
     const users = await executeQuery<User & { password_hash: string }>(
-      'SELECT id, email, username, role, password_hash, created_at FROM users WHERE email = ?',
+      'SELECT id, email, username, role, password_hash, created_at FROM users WHERE email = ? AND is_active = 1',
       [email]
     );
 
@@ -57,12 +58,11 @@ export async function POST(request: NextRequest) {
       }, { status: 401 });
     }
 
-    const user = users[0];
+      const user = users[0];
 
-    // Şifreyi doğrula
-    const isPasswordValid = await verifyPassword(password, user.password_hash);
-
-    if (!isPasswordValid) {
+      // Şifre doğrulama
+      const isPasswordValid = await verifyPassword(password, user.password_hash);
+      console.log('Password verification for user:', user.username, isPasswordValid ? 'success' : 'failed');    if (!isPasswordValid) {
       return NextResponse.json<ApiResponse>({
         success: false,
         message: 'E-posta veya şifre hatalı',
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     });
 
     // User object'i temizle (password_hash'i çıkar)
-    const { password_hash, ...userWithoutPassword } = user;
+    const { password_hash, ...userWithoutPassword }: { password_hash: string; id: number; email: string; username: string; role: UserRole; created_at: Date } = user;
 
     // Login log'u (opsiyonel)
     try {
