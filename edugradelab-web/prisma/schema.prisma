@@ -1,0 +1,55 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  first_name    String   @db.VarChar(50)
+  last_name     String   @db.VarChar(50)
+  email         String   @unique @db.VarChar(100)
+  password_hash String   @db.VarChar(255)
+  role          Role     @default(TEACHER)
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now()) @map("created_at")
+  updated_at    DateTime @updatedAt @map("updated_at")
+
+  analyses AnalysisHistory[]
+
+  @@map("users")
+}
+
+model AnalysisHistory {
+  id                Int             @id @default(autoincrement())
+  user_id           Int
+  exam_title        String          @db.VarChar(255)
+  scan_file_url     String          @db.Text
+  result_data       Json?
+  status            AnalysisStatus  @default(PENDING)
+  created_at        DateTime        @default(now()) @map("created_at")
+  updated_at        DateTime        @updatedAt @map("updated_at")
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("analysis_history")
+}
+
+enum Role {
+  TEACHER
+  ADMIN
+}
+
+enum AnalysisStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  ERROR
+}

@@ -7,7 +7,19 @@ export interface User {
   id: number;
   email: string;
   username: string;
+  password_hash?: string; // Auth işlemleri için - client'a gönderilmez
   role: UserRole;
+  is_active: boolean;
+  created_at: Date;
+}
+
+// Client'a gönderilen User tipi (şifre olmadan)
+export interface UserProfile {
+  id: number;
+  email: string;
+  username: string;
+  role: UserRole;
+  is_active: boolean;
   created_at: Date;
 }
 
@@ -136,7 +148,7 @@ export interface ApiResponse<T = unknown> {
 }
 
 export interface LoginResponse {
-  user: User;
+  user: UserProfile; // Şifre olmadan user bilgileri
   token: string;
 }
 

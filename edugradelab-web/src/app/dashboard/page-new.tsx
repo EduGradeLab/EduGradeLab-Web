@@ -155,7 +155,7 @@ export default function DashboardPage() {
                           {analysis.status === 'completed' && 'Tamamlandı'}
                           {analysis.status === 'processing' && 'İşleniyor'}
                           {analysis.status === 'pending' && 'Bekliyor'}
-                          {analysis.status === 'failed' && 'Hata'}
+                          {analysis.status === 'error' && 'Hata'}
                         </span>
                       </div>
                     </div>

@@ -8,10 +8,10 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User, LoginResponse, RegisterFormData, ApiResponse } from '@/types';
+import type { UserProfile, LoginResponse, RegisterFormData, ApiResponse } from '@/types';
 
 interface AuthState {
-  user: User | null;
+  user: UserProfile | null;
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
