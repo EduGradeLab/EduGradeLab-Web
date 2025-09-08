@@ -34,3 +34,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+# Copilot rules
+/EduGradeLab-Web/copilot-rules.md
+.github/copilot-instructions.md
