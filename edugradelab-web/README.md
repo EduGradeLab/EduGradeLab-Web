@@ -57,22 +57,41 @@
 ### Kurulum
 
 1. **Environment değişkenlerini ayarlama**
-```env
-# Database
-DATABASE_URL="mysql://username:password@localhost:3306/edugradelab"
+```bash
+# .env.example dosyasını .env.local olarak kopyalayın
+cp .env.example .env.local
 
-# JWT
-JWT_SECRET="your-super-secret-jwt-key"
+# Ardından .env.local dosyasını gerçek değerlerle doldurun:
+```
+
+```env
+# Database Configuration
+DATABASE_URL="mysql://root:password@localhost:3306/edu_gradelab_web_db"
+
+# JWT Secrets
+JWT_SECRET="your-super-secure-jwt-secret"
+NEXTAUTH_SECRET="your-nextauth-secret"
+
+# Next.js Configuration
+NEXTAUTH_URL="http://localhost:3000"
+NODE_ENV="development"
 
 # Vercel Blob Storage
 BLOB_READ_WRITE_TOKEN="your-vercel-blob-token"
-
-# Webhook URLs
-SCANNER_WEBHOOK_URL="https://your-scanner-service.com/webhook"
-AI_ANALYSIS_WEBHOOK_URL="https://your-ai-service.com/webhook"
 ```
 
-2. **Development server başlatma**
+2. **Dependencies kurulumu**
+```bash
+npm install
+```
+
+3. **Database setup**
+```bash
+npx prisma generate
+npx prisma db push
+```
+
+4. **Development server başlatma**
 ```bash
 npm run dev
 ```

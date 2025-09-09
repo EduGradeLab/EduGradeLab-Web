@@ -39,3 +39,18 @@ next-env.d.ts
 # Copilot rules
 /EduGradeLab-Web/copilot-rules.md
 .github/copilot-instructions.md
+
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# prisma
+prisma/generated/
+
+# uploads & temp files
+uploads/
+temp/
+next-env.d.ts
+
+/src/generated/prisma

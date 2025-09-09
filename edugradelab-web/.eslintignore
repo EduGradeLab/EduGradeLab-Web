@@ -1,0 +1,20 @@
+# ESLint ignore file for Vercel build
+node_modules/
+.next/
+out/
+build/
+dist/
+prisma/generated/
+src/generated/
+*.d.ts
+public/
+.env*
+
+# Generated Prisma files (lots of ESLint warnings)
+**/prisma/runtime/
+**/wasm*.js
+**/wasm-*.js
+
+# Build artifacts
+*.tsbuildinfo
+.vercel/
